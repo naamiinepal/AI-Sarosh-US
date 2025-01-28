@@ -56,15 +56,16 @@ class FeatureExtractor(nn.Module):
         Returns:
             torch.Tensor: Extracted feature map with shape (batch_size * seq_len, feature_size, 1, 1).
         """
-        bseq, width, height = x.size()
+        bseq, channels, width, height = x.size()
+        
         batch_size = bseq // seq_len  # Calculate the batch size based on input dimensions
 
+        
         if self.enable_chunking:
             # Chunked processing for memory efficiency
             feature_maps: List[torch.Tensor] = []
             num_full_chunks = (batch_size * seq_len) // self.chunk_size
             num_remaining = (batch_size * seq_len) % self.chunk_size
-
             # Process full chunks
             for i in range(num_full_chunks):
                 start_idx = i * self.chunk_size

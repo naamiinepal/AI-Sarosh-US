@@ -19,10 +19,10 @@ class FAMLITrainingModule(LightningModule):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        net: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
-        enable_compile: bool,
+        compile: bool,
     ) -> None:
         """
         Initializes the training module.
@@ -30,13 +30,13 @@ class FAMLITrainingModule(LightningModule):
         :param model: The neural network model to train.
         :param optimizer: Optimizer for training.
         :param scheduler: Learning rate scheduler.
-        :param enable_compile: Flag to enable model compilation (for PyTorch 2.0+).
+        :param compile: Flag to enable model compilation (for PyTorch 2.0+).
         """
         super().__init__()
         self.save_hyperparameters(logger=False)
 
-        self.model = model
-        self.enable_compile = enable_compile
+        self.model = net
+        self.compile = compile
 
         # Define the loss function
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -163,7 +163,7 @@ class FAMLITrainingModule(LightningModule):
 
         :param stage: Current stage ('fit', 'validate', 'test', or 'predict').
         """
-        if self.enable_compile and stage == "fit":
+        if self.compile and stage == "fit":
             self.model = torch.compile(self.model)
 
     def configure_optimizers(self) -> Dict[str, Any]:
@@ -188,4 +188,4 @@ class FAMLITrainingModule(LightningModule):
 
 
 if __name__ == "__main__":
-    _ = FAMLITrainingModule(model=None, optimizer=None, scheduler=None, enable_compile=False)
+    _ = FAMLITrainingModule(model=None, optimizer=None, scheduler=None, compile=False)

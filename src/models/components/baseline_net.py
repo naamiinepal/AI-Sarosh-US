@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet18
 from typing import List
-from feat_extractor import FeatureExtractor
+from .feat_extractor import FeatureExtractor
 
 
 class SimpleBaseNet(nn.Module):
@@ -15,7 +14,7 @@ class SimpleBaseNet(nn.Module):
         self,
         feat_extractor: nn.Module = FeatureExtractor(),
         classifier_conv_features: List[int] = [512, 256, 64, 1],
-        classifier_linear_sizes: List[int] = [114, 64, 4],
+        classifier_linear_sizes: List[int] = [116, 64, 4],
         dropout_rate: float = 0.4,
     ) -> None:
         """
@@ -90,24 +89,23 @@ class SimpleBaseNet(nn.Module):
         Returns:
             torch.Tensor: Output tensor of shape (batch_size, output_features).
         """
-        batch_size, seq_len, width, height = x.size()
-
+        
+        batch_size, seq_len, channels, width, height = x.size()
+        
+        
         # Reshape and process input through the feature extractor
-        x_reshaped = x.view(batch_size * seq_len, width, height).unsqueeze(dim=1).float()
+        x_reshaped = x.view(batch_size * seq_len, channels, width, height).float()
         feature_map = self.extractor(x_reshaped, seq_len)
-
         # Rearrange features for further processing
         _, channels, width, height = feature_map.size()
         feature_seq = feature_map.view(batch_size, seq_len, channels, width, height)
         feature_seq = feature_seq.permute(0, 2, 3, 4, 1).reshape(batch_size, channels, width * height * seq_len)
-
         # Apply dropout
         feature_seq = self.dropout(feature_seq)
 
         # Convolutional classification
         conv_features = self.classifier_conv(feature_seq)
         conv_features = self.dropout(conv_features)
-
         # Linear classification
         linear_input = conv_features.view(batch_size, -1)
         output = self.classifier_lin(linear_input)
@@ -115,11 +113,4 @@ class SimpleBaseNet(nn.Module):
         return output
 
 
-if __name__ == "__main__":
-    # Example instantiation
-    model = SimpleBaseNet()
 
-    # Example input: (batch_size, seq_len, width, height)
-    dummy_input = torch.randn(4, 10, 64, 64)
-    output = model(dummy_input)
-    print(f"Output shape: {output.shape}")

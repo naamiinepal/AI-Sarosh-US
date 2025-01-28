@@ -18,7 +18,7 @@ class FetalPresentationModel(nn.Module):
         is_training (bool): Whether the model is in training mode.
         num_classes (int): Number of output classes for classification. Defaults to 2.
     """
-    def __init__(self, base_network, feature_dim, is_training, num_classes=2):
+    def __init__(self, base_network, feature_dim, num_classes=2):
         super(FetalPresentationModel, self).__init__()
         self.base_network = base_network  # Base feature extractor network (e.g., LSTM, CNN, etc.)
         
@@ -30,8 +30,6 @@ class FetalPresentationModel(nn.Module):
             self.fetal_presentation = nn.Linear(feature_dim, num_classes)  # Multiple outputs for multi-class classification
             self.activation = nn.Softmax(dim=1)  # Softmax activation for multi-class classification
         
-        self.training = is_training  # Flag to indicate training mode
-
     def forward(self, video_clips):
         """
         Forward pass for the fetal presentation classification model.
@@ -51,10 +49,7 @@ class FetalPresentationModel(nn.Module):
         
         # Compute logits using the fully connected layer
         logits = self.fetal_presentation(spatially_averaged_features)
-        print(logits.shape)
-        # Apply activation function if in training mode
-        if self.training:
-            return self.activation(logits)
+        
         return logits
        
         
@@ -160,6 +155,9 @@ class BaseGoogle(nn.Module):
         """
         batch_size, seq_len, channels, width, height = videos.size()
 
+    
+        
+        print(batch_size, seq_len, channels, width, height)
         # Reshape and process input through the feature extractor
         x_reshaped = videos.view(batch_size * seq_len, channels, width, height).float()
         feature_map = self.extractor(x_reshaped)
