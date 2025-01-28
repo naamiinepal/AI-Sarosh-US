@@ -1,0 +1,17 @@
+_target_: src.data.base_datamodule.BaseDataModule
+batch_size: 1 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
+num_workers: 0
+pin_memory: False
+train_dataset:
+  _target_: src.data.datasets.famli_study_level.FamliStudyLevelDataset
+  image_root_dir: /home/kanchan
+  split_csv_file: /mnt/Enterprise2/AI-Sarosh/datasets/famli_csvs/train/presentation.csv
+val_dataset:
+  _target_: src.data.datasets.famli_study_level.FamliStudyLevelDataset
+  image_root_dir: /home/kanchan
+  split_csv_file: /mnt/Enterprise2/AI-Sarosh/datasets/famli_csvs/val/presentation.csv
+test_dataset:
+  _target_: src.data.datasets.famli_study_level.FamliStudyLevelDataset
+  image_root_dir: /home/kanchan
+  split_csv_file: /mnt/Enterprise2/AI-Sarosh/datasets/famli_csvs/test/presentation.csv
+
