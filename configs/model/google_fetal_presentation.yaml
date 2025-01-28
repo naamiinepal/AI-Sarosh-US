@@ -1,0 +1,23 @@
+_target_: src.models.famli_module.FAMLILitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.0
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.1
+  patience: 10
+
+net:
+  _target_: src.models.components.google_baselines.FetalPresentationModel
+  feature_dim: 1024
+  base_network:
+    _target_: src.models.components.google_baselines.BaseGoogle
+
+# compile model for faster training with pytorch 2.0
+compile: true
