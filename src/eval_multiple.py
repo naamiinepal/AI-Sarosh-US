@@ -4,7 +4,7 @@ import hydra
 import rootutils
 from lightning import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -92,6 +92,31 @@ def main(cfg: DictConfig) -> None:
     """
     # apply extra utilities
     # (e.g. ask for tags if none are provided in cfg, print cfg tree, etc.)
+    
+    if cfg.model.test_datasets:
+        print(f"Target devices: {cfg.model.test_datasets}")
+    
+    
+        if isinstance(cfg.model.test_datasets, str):
+            cfg.model.test_datasets = OmegaConf.create({"test_domains": eval(cfg.model.test_datasets)}).test_domains
+
+        OmegaConf.set_struct(cfg,False)
+        # Patch the config to have multiple dataset configs
+        base_dataset_cfg = cfg.data.test_dataset_base  # template
+        cfg.data.test_dataset = []
+        
+        for device in cfg.model.test_datasets:
+            base_cfg_copy = OmegaConf.create(OmegaConf.to_container(base_dataset_cfg, resolve=True))
+            new_cfg = OmegaConf.merge(
+                base_cfg_copy,
+                {
+                    "split_csv_file": f"{cfg.paths.data_dir}csvs/labelled_devices/test/{device}.csv"
+                }
+            )
+            cfg.data.test_dataset.append(new_cfg)
+
+
+        del cfg.data["test_dataset_base"]
     
     output_path = Path(cfg.paths.output_dir)
     output_path.mkdir(parents=True, exist_ok=True)  # ✅ creates directory if not present

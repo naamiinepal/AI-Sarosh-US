@@ -7,6 +7,8 @@ import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
+import os
+from pathlib import Path
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 # ------------------------------------------------------------------------------------ #
@@ -86,8 +88,16 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if cfg.get("train"):
         log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
+        
+
 
     train_metrics = trainer.callback_metrics
+    
+    log.info("Generating embeddings on training set!")
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+        
+    trainer.predict(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+    
 
     if cfg.get("test"):
         log.info("Starting testing!")
@@ -113,10 +123,14 @@ def main(cfg: DictConfig) -> Optional[float]:
     :param cfg: DictConfig configuration composed by Hydra.
     :return: Optional[float] with optimized metric value.
     """
-    # apply extra utilities
+    output_path = Path(cfg.paths.output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)  # ✅ creates directory if not present
+
+    # now safe to write files to this dir
+    print(f"Saving outputs to: {output_path}")# apply extra utilities
     # (e.g. ask for tags if none are provided in cfg, print cfg tree, etc.)
     extras(cfg)
-
+    
     # train the model
     metric_dict, _ = train(cfg)
 

@@ -4,6 +4,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
 from src.data.datasets.collater import famli_collator_fn
+import torch
+from torch.utils.data import WeightedRandomSampler
+
+
 
 class BaseDataModule(LightningDataModule):
    """
@@ -30,7 +34,7 @@ class BaseDataModule(LightningDataModule):
        pred_dataset: Optional[Dataset | List[Dataset]] = None,
        train_val_split: Tuple[float, float] | Tuple[int, int] = (0.8, 0.2),
        batch_size: int = 4,
-       num_workers: int = 18,
+       num_workers: int = 2,
        pin_memory: bool = False,
        collate_fn: Callable | None = famli_collator_fn
    ):
@@ -39,7 +43,10 @@ class BaseDataModule(LightningDataModule):
            logger=False,
            ignore=["train_dataset", "val_dataset", "test_dataset", "pred_dataset"],
        )
-
+       self.batch_size = batch_size
+       self.num_workers = num_workers
+       self.pin_memory = pin_memory
+        
        # Process datasets with flexible handling
        self.data_train = ConcatDataset(train_dataset) if isinstance(train_dataset, Iterable) else train_dataset
        
@@ -63,8 +70,9 @@ class BaseDataModule(LightningDataModule):
        self.data_pred = (
            ConcatDataset(pred_dataset) if isinstance(pred_dataset, Iterable) else 
            pred_dataset if pred_dataset is not None else 
-           self.data_test
+           self.data_train
        )
+       self.collate_fn = collate_fn
 
    def _create_dataloader(self, dataset, shuffle=False):
        """
@@ -79,11 +87,10 @@ class BaseDataModule(LightningDataModule):
        """
        return DataLoader(
            dataset=dataset,
-           batch_size=self.hparams.batch_size,
-           num_workers=self.hparams.num_workers,
-           pin_memory=self.hparams.pin_memory,
+           batch_size=self.batch_size,
+           num_workers=self.num_workers,
+           pin_memory=self.pin_memory,
            shuffle=shuffle,
-           collate_fn=self.hparams.collate_fn
        )
 
    def train_dataloader(self):
@@ -115,6 +122,29 @@ class BaseDataModule(LightningDataModule):
        pass
 
 
+class BalancedDataModule(BaseDataModule):
+     # Check if the dataset has a method to get weights
+      
+    def train_dataloader(self):
+        sample_weights = self.data_train.get_weights()
+        
+        if not hasattr(self.data_train, "get_weights"):
+            raise AttributeError("Dataset must implement a `get_weights()` method for balancing.")
+        
+        sampler = WeightedRandomSampler(
+            weights=sample_weights,
+            num_samples=len(sample_weights),
+            replacement=True
+        )
+
+        return DataLoader(
+            dataset=self.data_train,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            sampler=sampler,
+        )
+        
 if __name__ == "__main__":
     import hydra
     import omegaconf
