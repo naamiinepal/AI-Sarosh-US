@@ -1,0 +1,21 @@
+_target_: src.data.base_datamodule.BalancedDataModule
+batch_size: 1 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
+num_workers: 0
+pin_memory: False
+train_dataset:
+  _target_: src.data.datasets.clip_level.ClipLevelDataset
+  image_root_dir: ''
+  split_csv_file: ${paths.data_dir}csvs/quality/train/${device}.csv
+  task: ${ml_task}
+val_dataset:
+  _target_: src.data.datasets.clip_level.ClipLevelDataset
+  image_root_dir: ''
+  split_csv_file: ${paths.data_dir}csvs/quality/valid/${device}.csv
+  task: ${ml_task}
+test_dataset:
+  _target_: src.data.datasets.clip_level.ClipLevelDataset
+  image_root_dir: ''
+  split_csv_file: ${paths.data_dir}csvs/quality/test/${device}.csv
+  task: ${ml_task}
+
+
